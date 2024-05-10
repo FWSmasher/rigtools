@@ -1,0 +1,24 @@
+button {
+    border-radius:5px
+
+}
+
+body {
+    justify-content: center;
+    min-height: 100vh;
+     background: radial-gradient(ellipse at bottom, #0d1d31 0%, #0c0d13 100%);
+    overflow: hidden
+  }
+
+w {
+    color: aliceblue;
+}
+
+usans {
+    font-family: "Ubuntu Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+    font-variation-settings:
+      "wdth" 100;
+  }
