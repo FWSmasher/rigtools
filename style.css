@@ -10,9 +10,6 @@ body {
     overflow: hidden
   }
 
-w {
-    color: aliceblue;
-}
 
 usans {
     font-family: "Ubuntu Sans", sans-serif;
@@ -21,4 +18,11 @@ usans {
     font-style: normal;
     font-variation-settings:
       "wdth" 100;
-  }
+    color: aliceblue;
+}
+
+button {
+    background-color: #1a3658;
+    color: white;
+    border-color: #183355;
+}

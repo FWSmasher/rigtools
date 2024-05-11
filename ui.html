@@ -6,21 +6,29 @@
         </style>
     </head>
     <title>Rigtools</title>
-    <w><usans><b>Rigtools</b></usans></w>
+    <usans><b>Rigtools</b></usans>
     <hr>
-        <p><w><usans>
+        <p><usans>
             Rigtools is an exploit that allows you to execute code as both an extension and devtools, allowing you to disable extensions and mess with them.<br>
-        </p></w></usans>
+        </p></usans>
+        <textarea cols="50" rows="4" id="input">
+        </textarea><br>
         <a href="javascript:alert(`Your code here`)">
             <button >
-                Execute as extension ID
+                <usans>Execute as extension ID</usans>
             </button>
         </a>
         <br>
-        <a href="javascript:alert(`Your code here`)">
+        <a href="javascript:eval(getCode())"> <!-- Just here so it's easier to start executing, idc if this gets changed, just here for UI purposes-->
             <button >
-                Execute under devtools context
+                <usans>Execute under devtools context</usans>
             </button>
         </a>
-    <div class="star"></div>
+    <script>
+        function getCode(){
+            form = document.getElementById("input");
+            input = form.value;
+            return input;
+        }
+    </script>
     </html>
