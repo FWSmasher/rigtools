@@ -9,6 +9,147 @@ const managementTemplate = `
 </div>
 `;
 let savedExtList = [];
+
+class DefaultExtensionCapabilities {
+  static template = `
+  <div id="default_ext_capabilities">
+    <div id="extension_eval_cap">
+      <h1>Evaluate code within extension</h1>
+      <input type="text" /><button id="code_evaluate">Evaluate</button>
+    </div>
+    <div id="tab_cap">
+        <h1> chrome.tabs.update Navigate Websites </h1>
+        <p class="tab_load_status">Loading...</p>
+        <ol class="tablist">
+          
+        </ol>
+        
+    </div>
+    <div id="window_cap">
+  </div>
+  
+  `;
+  updateTabList(tablist, isTabTitleQueryable, tabStatus) {
+    
+    if (this.disarmed) {
+      return;
+    }
+    
+    if (this.tabListInProgress) {
+      console.log("In progress tablist building!");
+      // setTimeout(this.updateTabList.bind(this, tablist, isTabTitleQueryable, tabStatus));
+      return;
+    }
+    this.tabListInProgress = true;
+    tablist.innerHTML = "";
+    const thiz = this;
+    chrome.tabs.query({}, function (tabInfos) {
+      tabInfos.forEach(function (info) {
+        const listItem = document.createElement("li");
+        listItem.textContent = isTabTitleQueryable
+          ? `${info.title} (${info.url})`
+          : "(not available)";
+        const button = document.createElement("button");
+        button.innerHTML = "Preview";
+        button.onclick = () => {
+          thiz.disarm = true;
+          
+          thiz.previewing = true;
+          
+          chrome.tabs.update(info.id, {
+            active: true,
+          });
+          setTimeout(function () {
+            setTimeout(function () {
+              chrome.tabs.getCurrent(function (tab) {
+                chrome.tabs.update(tab.id, { active: true });
+                thiz.disarm = false;
+                thiz.previewing = false;
+              });
+            })
+          }, 100);
+        };
+        listItem.appendChild(button);
+        tablist.appendChild(listItem);
+      });
+      thiz.tabListInProgress = false;
+      if (isTabTitleQueryable) {
+        tabStatus.style.display = "none";
+      } else {
+        tabStatus.textContent =
+          "(Some data might not be available, because the extension doesn't have the 'tabs' permission)";
+      }
+    });
+  }
+  activate() {
+    
+    document.body.innerHTML += DefaultExtensionCapabilities.template;
+    document.body.querySelectorAll("button").forEach(function (btn) {
+      btn.onclick = this.onBtnClick_.bind(this, btn);
+    }, this);
+    const tabCapabilityElem = document.body.querySelector("#tab_cap");
+    const tablist = tabCapabilityElem.querySelector(".tablist");
+    const tabStatus = tabCapabilityElem.querySelector(".tab_load_status");
+    const isTabTitleQueryable = chrome.runtime
+      .getManifest()
+      .permissions.includes("tabs");
+    const updateCallback = this.updateTabList.bind(
+      this,
+      tablist,
+      isTabTitleQueryable,
+      tabStatus,
+    );
+    for (const ev in chrome.tabs) {
+      if (ev.startsWith("on")) {
+        chrome.tabs[ev].addListener(updateCallback);
+      }
+    }
+  }
+  static getFS() {
+    return new Promise(function (resolve) {
+      webkitRequestFileSystem(TEMPORARY, 2 * 1024 * 1024, resolve);
+    });
+  }
+  /**
+   * @param {HTMLButtonElement} b
+   */
+  async onBtnClick_(b) {
+    switch (b.id) {
+      case "code_evaluate": {
+        console.log("Evaluating code!");
+        const x = b.parentElement.querySelector("input").value;
+        const fs = await DefaultExtensionCapabilities.getFS();
+        function writeFile(file, data) {
+          return new Promise((resolve, reject) => {
+            fs.root.getFile(file, { create: true }, function (entry) {
+              entry.remove(function () {
+                fs.root.getFile(file, { create: true }, function (entry) {
+                  entry.createWriter(function (writer) {
+                    writer.write(new Blob([data]));
+                    writer.onwriteend = resolve.bind(null, entry.toURL());
+                  });
+                });
+              });
+            });
+          });
+        }
+
+        const url = await writeFile("src.js", x);
+        let script =
+          document.body.querySelector("#evaluate_elem") ??
+          document.createElement("script");
+        script.remove();
+        script = document.createElement("script");
+        script.id = "evaluate_elem";
+        script.src = url;
+        document.body.appendChild(script);
+      }
+    }
+  }
+}
+class HostPermissions {
+  activate() {}
+}
 function updateExtensionStatus(extlist_element) {
   return new Promise(function (resolve, reject) {
     extlist_element.innerHTML = "";
@@ -29,7 +170,12 @@ function updateExtensionStatus(extlist_element) {
   });
 }
 onload = async function x() {
+  let foundNothing = true;
   if (chrome.management.setEnabled) {
+    if (foundNothing) {
+      foundNothing = false;
+      window.document.body.innerHTML = "";
+    }
     window.document.body.innerHTML += managementTemplate;
     const extlist_element = document.querySelector(".extlist");
     await updateExtensionStatus(extlist_element);
@@ -63,4 +209,11 @@ onload = async function x() {
     };
     container_extensions.querySelector("button").disabled = false;
   }
+  const otherFeatures = window.chrome.runtime.getManifest();
+  const permissions = otherFeatures.permissions;
+  if (foundNothing) {
+    foundNothing = false;
+    window.document.body.innerHTML = "";
+  }
+  new DefaultExtensionCapabilities().activate();
 };
