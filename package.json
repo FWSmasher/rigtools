@@ -14,6 +14,7 @@
     "@types/node": "^18.0.6",
     "finalhandler": "^1.2.0",
     "http": "^0.0.1-security",
+    "readline-sync": "^1.4.10",
     "serve-static": "^1.15.0",
     "ws": "^8.17.0"
   }

