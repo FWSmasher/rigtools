@@ -1,14 +1,12 @@
 {
-  "name": "nodejs",
+  "name": "rigtools",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Devtools Code Execution",
+  "main": "index.mjs",
   "scripts": {
     "start": "node index.mjs"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "FWSmasher",
   "dependencies": {
     "@types/chrome": "^0.0.267",
     "@types/node": "^18.0.6",
