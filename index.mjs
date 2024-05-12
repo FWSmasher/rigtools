@@ -37,8 +37,9 @@ let serverConfig = "{\"updater_url\": \"rigtools.asyncsmasher.com\"}";
 try {
     serverConfig =  fs.readFileSync('server_config.json');
 } catch (e) {
-    console.log(`Using default update url ${JSON.parse(serverConfig).updater_url} because it failed to read the file: ${e}`);
+    console.log(`Using default update url ${JSON.parse(serverConfig).updater_url} because it failed to read the file: \n${e}`);
 }
+
 wss.on("connection", function connection(wss_con) {
     wss_con.on("message", async (msg) => {
         
