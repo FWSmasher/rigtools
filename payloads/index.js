@@ -1,3 +1,63 @@
+
+const uiTemplate = `
+<style>
+body {
+  background-color:#1e2030;
+  color: white;
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden;
+}
+
+a {
+    color: #b7bdf8;
+}
+
+.main {
+  top: 50%;
+  left: 50%;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 3px solid white;
+  font-weight: bold;
+  padding: 5%;
+  border-radius: 10px;
+  text-align: center;
+  background-color: #24273a;
+}
+
+button {
+  background-color: #a6da95;
+  border: none;
+  color: white;
+  padding: 7px 13px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  margin: 4px 2px;
+  cursor: pointer;
+  border-radius: 5px;
+  display: inline-block;
+  margin-left: auto;
+}
+
+input {
+  background-color: #363a4f;
+  border: none;
+  color: white;
+  padding: 9px 15px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  margin: 4px 2px;
+  cursor: pointer;
+  border-radius: 5px;
+  text-align: left;
+}
+</style>
+`;
+
 const managementTemplate = `
 <div id="chrome_management_disable_ext">
 <h1> chrome.management Disable Extensions </h1>
@@ -7,28 +67,23 @@ const managementTemplate = `
 </ol><br/>
 <input type="text" class="extnum"><button disabled>Toggle extension</button>
 </div>
-`;
+${uiTemplate}
+`; // TODO: Add CSS for this
 let savedExtList = [];
 
 class DefaultExtensionCapabilities {
   static template = `
-  <div id="default_ext_capabilities">
-    <div id="extension_eval_cap">
-      <h1>Evaluate code within extension</h1>
-      <input type="text" /><button id="code_evaluate">Evaluate</button>
-    </div>
-    <div id="tab_cap">
-        <h1> chrome.tabs.update Navigate Websites </h1>
-        <p class="tab_load_status">Loading...</p>
-        <ol class="tablist">
-          
-        </ol>
-        
-    </div>
+  <div class="main">
+    <div id="default_ext_capabilities">
+      <div id="extension_eval_cap">
+        <h1>Evaluate code within extension</h1>
+        <input type="text" /><button id="code_evaluate">Evaluate</button>
+      </div>
     <div id="window_cap">
   </div>
+  ${uiTemplate}
   
-  `;
+  `; // TODO: Fix Navigator (For now I removed it)
   updateTabList(tablist, isTabTitleQueryable, tabStatus) {
     if (this.disarmed) {
       return;
