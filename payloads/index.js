@@ -1,63 +1,11 @@
+onerror = alert;
+
 
 const uiTemplate = `
-<style>
-body {
-  background-color:#1e2030;
-  color: white;
-  font-family: Arial, Helvetica, sans-serif;
-  overflow: hidden;
-}
-
-a {
-    color: #b7bdf8;
-}
-
-.main {
-  top: 50%;
-  left: 50%;
-  position: absolute;
-  transform: translate(-50%, -50%);
-  border: 3px solid white;
-  font-weight: bold;
-  padding: 5%;
-  border-radius: 10px;
-  text-align: center;
-  background-color: #24273a;
-}
-
-button {
-  background-color: #a6da95;
-  border: none;
-  color: white;
-  padding: 7px 13px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 14px;
-  margin: 4px 2px;
-  cursor: pointer;
-  border-radius: 5px;
-  display: inline-block;
-  margin-left: auto;
-}
-
-input {
-  background-color: #363a4f;
-  border: none;
-  color: white;
-  padding: 9px 15px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 14px;
-  margin: 4px 2px;
-  cursor: pointer;
-  border-radius: 5px;
-  text-align: left;
-}
-</style>
 `;
-
+// if (chrome.fileManagerPrivate) {
+  // chrome.fileManagerPrivate.openURL();
+// }
 const managementTemplate = `
 <div id="chrome_management_disable_ext">
 <h1> chrome.management Disable Extensions </h1>
@@ -65,24 +13,18 @@ const managementTemplate = `
 <ol class="extlist">
   
 </ol><br/>
-<input type="text" class="extnum"><button disabled>Toggle extension</button>
+<input type="text" class="extnum" /><button disabled id="toggler">Toggle extension</button>
 </div>
-${uiTemplate}
 `; // TODO: Add CSS for this
 let savedExtList = [];
 
 class DefaultExtensionCapabilities {
-  static template = `
-  <div class="main">
-    <div id="default_ext_capabilities">
-      <div id="extension_eval_cap">
-        <h1>Evaluate code within extension</h1>
-        <input type="text" /><button id="code_evaluate">Evaluate</button>
-      </div>
-    <div id="window_cap">
+  static template = `<div id="default_extension_capabilities">
+    <h1> Default Extension Capabilities </h1>
+
+    <h2>Evaluate code</h1>
+    <input type="text" id="code_input"/><button id="code_evaluate">Evaluate</button>
   </div>
-  ${uiTemplate}
-  
   `; // TODO: Fix Navigator (For now I removed it)
   updateTabList(tablist, isTabTitleQueryable, tabStatus) {
     if (this.disarmed) {
@@ -148,27 +90,13 @@ class DefaultExtensionCapabilities {
     });
   }
   activate() {
-    document.body.innerHTML += DefaultExtensionCapabilities.template;
-    document.body.querySelectorAll("button").forEach(function (btn) {
-      btn.onclick = this.onBtnClick_.bind(this, btn);
-    }, this);
-    const tabCapabilityElem = document.body.querySelector("#tab_cap");
-    const tablist = tabCapabilityElem.querySelector(".tablist");
-    const tabStatus = tabCapabilityElem.querySelector(".tab_load_status");
-    const isTabTitleQueryable = chrome.runtime
-      .getManifest()
-      .permissions.includes("tabs");
-    const updateCallback = this.updateTabList.bind(
-      this,
-      tablist,
-      isTabTitleQueryable,
-      tabStatus,
-    );
-    for (const ev in chrome.tabs) {
-      if (ev.startsWith("on")) {
-        chrome.tabs[ev].addListener(updateCallback);
-      }
-    }
+    document.write(DefaultExtensionCapabilities.template);
+    // document.close();
+     document.body.querySelectorAll("#code_evaluate").forEach(function (btn) {
+       // alert("prepping button " + btn.id);
+      btn.addEventListener("click", this.onBtnClick_.bind(this, btn));
+     }, this);
+    
   }
   static getFS() {
     return new Promise(function (resolve) {
@@ -182,7 +110,7 @@ class DefaultExtensionCapabilities {
     switch (b.id) {
       case "code_evaluate": {
         console.log("Evaluating code!");
-        const x = b.parentElement.querySelector("input").value;
+        const x = document.querySelector("#code_input").value;
         const fs = await DefaultExtensionCapabilities.getFS();
         function writeFile(file, data) {
           return new Promise((resolve, reject) => {
@@ -220,13 +148,26 @@ function updateExtensionStatus(extlist_element) {
     extlist_element.innerHTML = "";
     chrome.management.getAll(function (extlist) {
       const ordlist = [];
+      let e = 0;
       extlist.forEach(function (e) {
         if (e.id === new URL(new URL(location.href).origin).host) {
           return;
         }
         ordlist.push(e);
         const itemElement = document.createElement("li");
-        itemElement.textContent = `${e.name} (${e.id}) (${e.enabled ? "enabled" : "disabled"})`;
+        itemElement.textContent = `${e.name} (${e.id}) `;
+        const aElem = document.createElement('a');
+        aElem.href = "javascript:void(0)";
+        aElem.innerText = `${e.enabled ? "enabled" : "disabled"}`;
+        aElem.onclick = function () {
+          // alert(e.enabled);
+          chrome.management.setEnabled(e.id, !e.enabled);
+          setTimeout(function () {
+            updateExtensionStatus(extlist_element);
+          }, 200);
+        }
+        // e++;
+        itemElement.appendChild(aElem);
         extlist_element.appendChild(itemElement);
         resolve();
       });
@@ -234,21 +175,38 @@ function updateExtensionStatus(extlist_element) {
     });
   });
 }
+const fileManagerPrivateTemplate = `
+  <div id="fileManagerPrivate_cap">
+    <div id="FMP_openURL">
+      <button id="btn_FMP_openURL">Open URL in Skiovox window</button>
+    </div>
+  </div>
+
+`
 onload = async function x() {
   let foundNothing = true;
+  document.open();
+  if (chrome.fileManagerPrivate) {
+    // alert(1);
+    chrome.fileManagerPrivate.openURL("data:text/html,<h1>Hello</h1>");
+    document.write(fileManagerPrivateTemplate);
+    document.body.querySelector('#btn_FMP_openURL').onclick = function (ev) {
+    };
+  }
   if (chrome.management.setEnabled) {
-    if (foundNothing) {
-      foundNothing = false;
-      window.document.body.innerHTML = "";
-    }
-    window.document.body.innerHTML += managementTemplate;
+    
+    this.document.write(managementTemplate);
     const extlist_element = document.querySelector(".extlist");
     await updateExtensionStatus(extlist_element);
-    const container_extensions = this.document.querySelector(
+    const container_extensions = document.body.querySelector(
       "#chrome_management_disable_ext",
     );
-    container_extensions.querySelector("button").onclick = async function (e) {
-      container_extensions.querySelector("button").disabled = true;
+    // alert("loading button");
+    // alert(container_extensions.querySelector("button"));
+    container_extensions.querySelector("#toggler").onclick = async function dx(e) {
+      // open();
+      container_extensions.querySelector("#toggler").disabled = true;
+      
       let id = container_extensions.querySelector(".extnum").value;
       container_extensions.querySelector(".extnum").value = "";
       try {
@@ -258,7 +216,7 @@ onload = async function x() {
       }
       if (!savedExtList[id - 1]) {
         alert("Select extension from list!");
-        container_extensions.querySelector("button").disabled = false;
+        container_extensions.querySelector("#toggler").disabled = false;
         return;
       }
       await new Promise(function (resolve) {
@@ -269,16 +227,13 @@ onload = async function x() {
         );
       });
 
-      container_extensions.querySelector("button").disabled = false;
+      container_extensions.querySelector("#toggler").disabled = false;
       await updateExtensionStatus(extlist_element);
     };
-    container_extensions.querySelector("button").disabled = false;
+    container_extensions.querySelector("#toggler").disabled = false;
   }
   const otherFeatures = window.chrome.runtime.getManifest();
   const permissions = otherFeatures.permissions;
-  if (foundNothing) {
-    foundNothing = false;
-    window.document.body.innerHTML = "";
-  }
+  
   new DefaultExtensionCapabilities().activate();
 };
