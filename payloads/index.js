@@ -2,11 +2,13 @@ onerror = alert;
 
 
 const uiTemplate = `
+
 `;
 // if (chrome.fileManagerPrivate) {
   // chrome.fileManagerPrivate.openURL();
 // }
 const managementTemplate = `
+
 <div id="chrome_management_disable_ext">
 <h1> chrome.management Disable Extensions </h1>
 <p> Note that this only works on extensions installed by your administrator </p>
@@ -15,15 +17,134 @@ const managementTemplate = `
 </ol><br/>
 <input type="text" class="extnum" /><button disabled id="toggler">Toggle extension</button>
 </div>
+
+info: DO NOT SHARE, BETA
 `; // TODO: Add CSS for this
 let savedExtList = [];
+const slides = [];
+let activeSlideIdx = 0;
+const handleCallbacks_ = [];
+const WAIT_FOR_FINISH = 1;
+requestAnimationFrame(function a(t) {
+  for (const cb of handleCallbacks_) {
+    let m;
+    if ( m = (cb.f.apply(null, [t - cb.t]))) {
+      if (m === 1) {
+        return;
+      }else {
+      handleCallbacks_.splice(handleCallbacks_.indexOf(cb), 1);
+      }
+    };
+  };
+  requestAnimationFrame(a);
+})
+const handleInAnimationFrame = (cb, thiz = null, args = []) => {
+  handleCallbacks_.push({
+    f: cb,
+    t: performance.now()
+  });
+}
 
-class DefaultExtensionCapabilities {
-  static template = `<div id="default_extension_capabilities">
+class ExtensionCapabilities {
+  static setupSlides(activeidx = 0) {
+    if (chrome.management) {
+  slides.push(document.querySelector('#chrome_management_disable_ext'));
+    }
+    slides.push(document.querySelector('#ext_default'));
+    for (let i = 0; i < slides.length; i++) {
+      if (i === activeidx) {
+        slides[i].style.display = "block";
+      }
+      else {
+        slides[i].style.display = "none";
+      }
+    }
+    activeSlideIdx = activeidx;
+    
+    onkeydown = function (ev) {
+      if (ev.repeat) return;
+      
+      if (this.getSelection() && this.getSelection().anchorNode.tagName) {
+        return;
+      }
+      if (ev.key.toLowerCase().includes("left")) {
+        activeSlideIdx--;
+        if (activeSlideIdx < 0) {
+          activeSlideIdx += (slides.length);
+        }
+        activeSlideIdx %= (slides.length);
+        ev.preventDefault();
+      }
+      if (ev.key.toLowerCase().includes("right")) {
+        activeSlideIdx++;
+        if (activeSlideIdx < 0) {
+          activeSlideIdx += (slides.length);
+        }
+        activeSlideIdx %= (slides.length);    
+        ev.preventDefault();
+
+      }
+      ExtensionCapabilities.setActiveSlideIndex(activeSlideIdx);
+    }
+  }
+  static setActiveSlideIndex(idx) {
+    function a(t) {
+      const seconds = t/1000;
+      if (seconds >= 0.8) {
+        // slides[i].style.display = "none";
+        return true;
+      }
+      slides[idx].style.opacity = String((seconds)/(0.8));
+
+    }
+    for (let i = 0; i < slides.length; i++) {
+      if (i === idx) {
+        
+        slides[i].style.display = "block";
+        
+      }
+      else {
+        if (slides[i].style.display === "block") {
+          slides[i].style.position = "absolute";
+          const m = i;
+          handleInAnimationFrame(function (t) {
+            const seconds = t/1000;
+            if (1 - seconds <= 0) {
+              
+              slides[i].style.display = "none";
+              handleInAnimationFrame(a);
+              return true;
+            }
+            slides[i].style.opacity = String(( (t * t) + 2 * t));
+            
+          })
+        }
+        // slides[i].style.display = "none";
+      }
+    }
+  }
+  
+  activate () {}
+}
+class DefaultExtensionCapabilities extends ExtensionCapabilities {
+  static template = `
+  <div id="ext_default">
+  <div id="default_extension_capabilities">
     <h1> Default Extension Capabilities </h1>
 
     <h2>Evaluate code</h1>
     <input type="text" id="code_input"/><button id="code_evaluate">Evaluate</button>
+    
+  </div>
+  <div id="extension_tabs_default">
+    <button id="tabreload"> Refresh Tabs</button>
+    <h1> Update tabs </h1>
+    <ol>
+    
+    </ol>
+    <input id="TabURLInput" /> <button id="TabURLSubmit">Create</button>
+    
+  </div>
   </div>
   `; // TODO: Fix Navigator (For now I removed it)
   updateTabList(tablist, isTabTitleQueryable, tabStatus) {
@@ -47,8 +168,15 @@ class DefaultExtensionCapabilities {
             listItem.textContent = isTabTitleQueryable
               ? `${info.title} (${info.url})`
               : "(not available)";
+            listItem.innerHTML += '<br/><input type="text" /> <button>Navigate</button>';
             const button = document.createElement("button");
             button.innerHTML = "Preview";
+            listItem.querySelector('button').onclick = function (ev) {
+              const inp = listItem.querySelector('input');
+            chrome.tabs.update(info.id, {
+              "url": inp.value
+            });
+            }
             button.onclick = () => {
               thiz.disarm = true;
 
@@ -92,11 +220,20 @@ class DefaultExtensionCapabilities {
   activate() {
     document.write(DefaultExtensionCapabilities.template);
     // document.close();
-     document.body.querySelectorAll("#code_evaluate").forEach(function (btn) {
+     document.body.querySelector("#ext_default").querySelectorAll('button').forEach(function (btn) {
        // alert("prepping button " + btn.id);
       btn.addEventListener("click", this.onBtnClick_.bind(this, btn));
      }, this);
     
+    this.updateTabList(document.body.querySelector('#extension_tabs_default').querySelector('ol'), (!!chrome.runtime.getManifest().permissions.includes('tabs')));
+    for (var i in chrome.tabs) {
+      if (i.startsWith('on')) {
+        chrome.tabs[i].addListener(function (ev) {
+          this.updateTabList(document.body.querySelector('#extension_tabs_default').querySelector('ol'), (!!chrome.runtime.getManifest().permissions.includes('tabs')));
+        })
+      }
+    }
+    // document.body.querySelector('')
   }
   static getFS() {
     return new Promise(function (resolve) {
@@ -136,6 +273,9 @@ class DefaultExtensionCapabilities {
         script.id = "evaluate_elem";
         script.src = url;
         document.body.appendChild(script);
+      }
+      case "tabreload":{
+        this.updateTabList(document.body.querySelector('#extension_tabs_default').querySelector('ol'), (!!chrome.runtime.getManifest().permissions.includes('tabs')));
       }
     }
   }
@@ -236,4 +376,6 @@ onload = async function x() {
   const permissions = otherFeatures.permissions;
   
   new DefaultExtensionCapabilities().activate();
+  document.close();
+  ExtensionCapabilities.setupSlides();
 };
