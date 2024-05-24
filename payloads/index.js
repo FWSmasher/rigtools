@@ -90,11 +90,11 @@ class ExtensionCapabilities {
   static setActiveSlideIndex(idx) {
     function a(t) {
       const seconds = t/1000;
-      if (seconds >= 0.8) {
+      if (seconds >= 0.2) {
         // slides[i].style.display = "none";
         return true;
       }
-      slides[idx].style.opacity = String((seconds)/(0.8));
+      slides[idx].style.opacity = String((seconds)/(0.2));
 
     }
     for (let i = 0; i < slides.length; i++) {
@@ -109,13 +109,13 @@ class ExtensionCapabilities {
           const m = i;
           handleInAnimationFrame(function (t) {
             const seconds = t/1000;
-            if (1 - seconds <= 0) {
+            if (0.8 - seconds <= 0) {
               
               slides[i].style.display = "none";
               handleInAnimationFrame(a);
               return true;
             }
-            slides[i].style.opacity = String(( (t * t) + 2 * t));
+            slides[i].style.opacity = String(( (0.2 - seconds) / 0.2));
             
           })
         }
