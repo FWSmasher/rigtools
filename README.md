@@ -30,5 +30,3 @@ $ npm start
     - Extension debugging
     - Devtools debugging
     - Chrome url debugging.
-
-## Private, do not share.
