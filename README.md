@@ -30,3 +30,4 @@ $ npm start
     - Extension debugging
     - Devtools debugging
     - Chrome url debugging.
+This URL is outdated, use [rigtools-v2](https://github.com/MunyDev/rigtools-v2)
