@@ -1,3 +1,4 @@
+# This GitHub is outdated, use [rigtools-v2](https://github.com/MunyDev/rigtools-v2)
 # Rigtools
 Extension/Devtools code execution  
 ## How to use
@@ -29,5 +30,4 @@ $ npm start
     - Updater
     - Extension debugging
     - Devtools debugging
-    - Chrome url debugging.  
-This URL is outdated, use [rigtools-v2](https://github.com/MunyDev/rigtools-v2)
+    - Chrome url debugging.
