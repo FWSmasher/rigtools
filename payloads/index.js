@@ -16,7 +16,10 @@ const managementTemplate = `
   
 </ol><br/>
 <input type="text" class="extnum" /><button disabled id="toggler">Toggle extension</button>
+<br/><br/>
+<button id="current-extension">Disable currently running extension</button>
 </div>
+<br/>
 
 info: DO NOT SHARE, BETA
 `; // TODO: Add CSS for this
@@ -343,6 +346,16 @@ onload = async function x() {
     );
     // alert("loading button");
     // alert(container_extensions.querySelector("button"));
+
+    container_extensions.querySelector("#current-extension").onclick = async function df(e) {
+      try {
+        var grabidtokill = chrome.runtime.id;
+        chrome.management.setEnabled(grabidtokill, false);
+      } catch {
+        alert("unsuccessful");
+      }
+    };
+    
     container_extensions.querySelector("#toggler").onclick = async function dx(e) {
       // open();
       container_extensions.querySelector("#toggler").disabled = true;
